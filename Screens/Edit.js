@@ -1,5 +1,5 @@
 import React, { Component } from 'react'
-import { ActivityIndicator, Dimensions, FlatList, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import { ActivityIndicator, Alert, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
 import {Ionicons,MaterialIcons, AntDesign, Entypo, FontAwesome5, Feather, MaterialCommunityIcons, FontAwesome,Fontisto} from '@expo/vector-icons'
 import { Input, ListItem, Avatar } from 'react-native-elements'
 import DateTimePicker from 'react-native-modal-datetime-picker';
@@ -8,9 +8,7 @@ import BouncyCheckbox from 'react-native-bouncy-checkbox'
 import theme from '../Props/theme';
 import {Switch} from 'react-native-paper'
 
-export default class Add extends Component {
-        // color: black = #F1A43C,  #F8D74B, #68CE6A, #89C2F8, #C883EE
-
+export default class Edit extends Component {
         backgroundColors = ["#EC5546","#F1A43C","#F8D74B","#68CE6A",'#89C2F8']
         backgroundColors2 = ["#3B82F6","#5D5CDE","#EB5D7B","#C883EE","#767C86"]
 
@@ -23,13 +21,42 @@ export default class Add extends Component {
                 dateTimeError:'',
                 timeNotificationShouldBeSent:'',
                 modalVisible:false,
-                reminderAdded: false,
+                reminderUpdated: false,
                 backgroundColor:'#f0f0f0',
                 isModalVisible: false,
                 iconModalVisible: false,
                 icon:'clock',
                 iconType:'feather',
-                shouldDeleteAfterReminder:false
+                docID:'',
+                shouldDeleteAfterReminder: false
+        }
+
+        componentDidMount(){
+                this.setReminderDetails()
+        }
+
+        setReminderDetails() {
+                this.setState({
+                        title: this.props.route.params.details.title,
+                        description: this.props.route.params.details.description,
+                        dateAndTime: this.props.route.params.details.dateAndTime,
+                        backgroundColor: this.props.route.params.details.backgroundColor,
+                        icon: this.props.route.params.details.icon,
+                        iconType:this.props.route.params.details.iconType,
+                        timeNotificationShouldBeSent: this.props.route.params.details.timeNotificationShouldBeSent,
+                        shouldDeleteAfterReminder: this.props.route.params.details.shouldDeleteAfterReminder
+                })
+                firebase.firestore().collection('Reminders').where('title','==',this.props.route.params.details.title).onSnapshot((snapshot) => {
+                        var docData = snapshot.docs.map((document) => 
+                                {var docID = document.id
+                                        this.setState({
+                                                docID
+                                        })
+                                }
+
+                        )
+                        
+                })
         }
         
         renderColors() {
@@ -40,6 +67,67 @@ export default class Add extends Component {
                 })
         }
 
+        deleteReminderFromDB() {
+                firebase.firestore().collection('Reminders').doc(this.state.docID).delete().then(() => {
+                        firebase.firestore().collection('Recently Deleted').add({
+                                title: this.state.title,
+                                description:this.state.description,
+                                dateAndTime:this.state.dateAndTime,
+                                timeNotificationShouldBeSent:this.state.timeNotificationShouldBeSent === '' ? '5 minutes' : this.state.timeNotificationShouldBeSent,
+                                userEmail: firebase.auth().currentUser.email,
+                                backgroundColor:this.state.backgroundColor,
+                                icon:this.state.icon,
+                                iconType:this.state.iconType
+                        })
+                        .then(() => {
+                                this.props.navigation.goBack()
+                        })
+                })
+        }
+
+        deleteReminder() {
+                Alert.alert('Delete a reminder','Are you sure you want to delete this reminder?',[
+                        {
+                                text:'Cancel',
+                                style:'cancel'
+                        },
+                        {
+                                text:'Delete',
+                                style:'destructive',
+                                onPress: () => this.deleteReminderFromDB()
+                        }
+                ])
+                
+        }
+
+        updateReminder() {
+                if(this.state.title === '' || this.state.description === '' || this.state.dateAndTime === ''){
+                        Alert.alert('Error updating information','Please enter all information to proceed')
+                }else{
+                        // backgroundColor
+                        // dateAndTime
+                        // description
+                        // icon
+                        // iconType
+                        // timeNotificationShouldBeSent
+                        // title
+                        // userEmail
+                        firebase.firestore().collection('Reminders').doc(this.state.docID).update({
+                                title: this.state.title,
+                                description:this.state.description,
+                                dateAndTime:this.state.dateAndTime,
+                                timeNotificationShouldBeSent:this.state.timeNotificationShouldBeSent === '' ? '5 minutes' : this.state.timeNotificationShouldBeSent,
+                                userEmail: firebase.auth().currentUser.email,
+                                backgroundColor:this.state.backgroundColor,
+                                icon:this.state.icon,
+                                iconType:this.state.iconType
+                        })
+                        .then(() => {
+                                this.props.navigation.goBack()
+                        })
+                }
+        }
+
         renderColors2() {
                 return this.backgroundColors2.map(color => {
                         return(
@@ -47,38 +135,6 @@ export default class Add extends Component {
                         )
                 })
         }
-
-        addReminder = () => {
-                if(this.state.title === ''){
-                        this.setState({titleError:'Please enter a title. Required'})
-                }else if(this.state.description === '') {
-                        this.setState({descriptionError:'Please enter a desciprtion. Required'})
-                }else if(this.state.dateAndTime === '') {
-                        this.setState({dateTimeError: 'Please choose a date & time for this reminder. Required'})
-                }else {
-                        this.setState({reminderAdded:true})
-                        firebase
-                        .firestore()
-                        .collection('Reminders')
-                        .add({
-                                title: this.state.title,
-                                description:this.state.description,
-                                dateAndTime:this.state.dateAndTime,
-                                timeNotificationShouldBeSent:this.state.timeNotificationShouldBeSent === '' ? '5 minutes' : this.state.timeNotificationShouldBeSent + ' minutes',
-                                userEmail: firebase.auth().currentUser.email,
-                                backgroundColor:this.state.backgroundColor,
-                                icon:this.state.icon,
-                                iconType:this.state.iconType,
-                                shouldDeleteAfterReminder:this.state.shouldDeleteAfterReminder
-                        })
-                        .then(() => {
-                                this.props.navigation.goBack()        
-                        })
-                        this.setState({reminderAdded:false})
-                }   
-        }
-
-        
 
                 componentDidUpdate(){
                         if(this.state.title !== '' && this.state.titleError !== ''){
@@ -218,9 +274,6 @@ export default class Add extends Component {
                                 </Modal>
 
                                 <ScrollView style={{flex:1}} showsVerticalScrollIndicator={false}>
-                                <TouchableOpacity style={{position:'absolute', top: 32, left: 25}} onPress={() => this.props.navigation.goBack()}>
-                                        <Ionicons name="ios-arrow-back-outline" size={45} color="black" />
-                                </TouchableOpacity>
                                 <StatusBar hidden />
                                 <DateTimePicker
                                         isVisible={this.state.modalVisible}
@@ -230,7 +283,7 @@ export default class Add extends Component {
                                         display="spinner"
                                         isDarkModeEnabled
                                 />
-                                <View style={{backgroundColor:'white',marginTop:100,marginHorizontal:50}}>
+                                <View style={{backgroundColor:'white',marginTop:50,marginHorizontal:50}}>
                                         <Text style={styles.header}>title</Text>
                                         <Input
                                                 value={this.state.title}
@@ -326,25 +379,27 @@ export default class Add extends Component {
                                                 </View>
                                                 </TouchableOpacity>                             
                                         <Text style={styles.header}>Date and time</Text>
-                                        {this.state.dateAndTime === '' ? (
-                                                <TouchableOpacity onPress={() => showModal()}>
-                                                <View style={{ flexDirection: 'row',alignItems:'center' }}>
-                                                        <View style={{ marginTop: 10 }}>
-                                                        <FontAwesome5
-                                                        name="hand-point-up"
-                                                        size={28}
-                                                        color="#696969"
-                                                        />
-                                                        </View>
+                                        
+                                                <View style={{flexDirection:'row'}}>
+                                                        <TouchableOpacity onPress={() => showModal()}>
+                                                        <View style={{ flexDirection: 'row',alignItems:'center' }}>
+                                                                <View style={{ marginTop: 10 }}>
+                                                                <FontAwesome5
+                                                                name="hand-point-up"
+                                                                size={28}
+                                                                color="#696969"
+                                                                />
+                                                                </View>
 
-                                                        <Text style={styles.chooseDate}>choose</Text>
+                                                                <Text style={styles.chooseDate}>choose</Text>
+                                                        </View>
+                                                        </TouchableOpacity>
+                                                
+                                                        <Text style={{ marginTop: 10, fontSize: 20, fontWeight: '200', marginLeft:20 }}>
+                                                        {this.state.dateAndTime}
+                                                        </Text>
                                                 </View>
-                                                </TouchableOpacity>
-                                        ) : (
-                                                <Text style={{ marginTop: 10, fontSize: 20, fontWeight: '200' }}>
-                                                {this.state.dateAndTime}
-                                                </Text>
-                                        )}
+                                        
 
                                         {this.state.dateTimeError === '' ? (
                                                 <Text></Text>
@@ -382,8 +437,9 @@ export default class Add extends Component {
                                                 text="5 minutes"
                                                 iconStyle={{ borderColor: theme.pink }}
                                                 style={{margin:15}}
-                                                onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'5'}) : this.setState({timeNotificationShouldBeSent:''}) }}
-                                                disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '5' ? true : false}
+                                                isChecked={this.props.route.params.details.timeNotificationShouldBeSent === '5 minutes' ? true : false}
+                                                onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'5 minutes'}) : this.setState({timeNotificationShouldBeSent:''}) }}
+                                                disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '5 minutes' ? true : false}
                                         />
                                         <BouncyCheckbox
                                                 size={25}
@@ -392,38 +448,39 @@ export default class Add extends Component {
                                                 style={{margin:15}}
                                                 text="10 minutes"
                                                 iconStyle={{ borderColor: theme.pink }}
-                                                onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'10'}) : this.setState({timeNotificationShouldBeSent:''}) }}
-                                                disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '10' ? true : false}
+                                                isChecked={this.props.route.params.details.timeNotificationShouldBeSent === '10 minutes' ? true : false}
+                                                onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'10 minutes'}) : this.setState({timeNotificationShouldBeSent:''}) }}
+                                                disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '10 minutes' ? true : false}
                                         />
                                         <BouncyCheckbox
                                                 size={25}
                                                 fillColor={theme.pink}
                                                 style={{margin:15}}
                                                 unfillColor="#FFFFFF"
-                                                text="15 minutes"
+                                                text="15 minutes"                                                isChecked={this.props.route.params.details.timeNotificationShouldBeSent === '20 minutes' ? true : false}
+                                                isChecked={this.props.route.params.details.timeNotificationShouldBeSent === '15 minutes' ? true : false}
                                                 iconStyle={{ borderColor: theme.pink }}
-                                                onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'15'}) : this.setState({timeNotificationShouldBeSent:''}) }}
-                                                disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '15' ? true : false}
+                                                onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'15 minutes'}) : this.setState({timeNotificationShouldBeSent:''}) }}
+                                                disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '15 minutes' ? true : false}
                                         />
                                         <BouncyCheckbox
                                                 size={25}
                                                 fillColor={theme.pink}
                                                 style={{margin:15}}
                                                 unfillColor="#FFFFFF"
+                                                isChecked={this.props.route.params.details.timeNotificationShouldBeSent === '20 minutes' ? true : false}
                                                 text="20 minutes"
                                                 iconStyle={{ borderColor: theme.pink }}
-                                                onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'20'}) : this.setState({timeNotificationShouldBeSent:''}) }}
-                                                disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '20' ? true : false}
+                                                onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'20 minutes'}) : this.setState({timeNotificationShouldBeSent:''}) }}
+                                                disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '20 minutes' ? true : false}
                                         />
-
-                                        <Text style={[styles.header,{margin:10}]}>should the reminder automatically delete after the reminder is complete?</Text>
+                                         <Text style={[styles.header,{margin:10}]}>should the reminder automatically delete after the reminder is complete?</Text>
                                         <Switch
                                                 value={this.state.shouldDeleteAfterReminder}
                                                 style={{margin:10}}
                                                 color='#EB5D7B'
                                                 onValueChange={() => this.setState({shouldDeleteAfterReminder: !this.state.shouldDeleteAfterReminder})}
                                         />
-
                                          <View style={{flexDirection:'row',margin:10,justifyContent:'space-around'}}>
                                                 <Text style={{fontSize:13,fontWeight:'200',textTransform:'uppercase',color:'#8e93a1',marginRight:10}}>This is how your reminder will look </Text>
                                                 <FontAwesome5
@@ -465,10 +522,14 @@ export default class Add extends Component {
                                 </View>
 
                                
-                                {this.state.reminderAdded ? <ActivityIndicator size="large" color="red" /> : <TouchableOpacity style={{alignItems:'center', flexDirection:'row',alignSelf:'center',marginTop:20}} onPress={() => this.addReminder()}>
-                                        <Feather name="clock" size={28} color="black"  style={{marginHorizontal:10}}/>
-                                        <Text style={[styles.header,{fontWeight:'600',fontSize:25,textTransform:'capitalize',color:'black'}]}>add reminder</Text>
-                                </TouchableOpacity>}
+                                <TouchableOpacity style={{alignItems:'center', flexDirection:'row',alignSelf:'center',marginTop:20,paddingVertical:15,paddingHorizontal:40,borderRadius:10,backgroundColor:theme.darkBlue}} onPress={() => this.updateReminder()}>
+                                        <Text style={[styles.header,{fontWeight:'600',fontSize:25,textTransform:'capitalize',color: 'white'}]}>Update</Text>
+                                </TouchableOpacity>
+
+                                <TouchableOpacity style={{alignItems:'center', flexDirection:'row',alignSelf:'center',marginTop:20,paddingVertical:15,paddingHorizontal:40,borderRadius:10,backgroundColor:theme.red}} onPress={() => this.deleteReminder()}>
+                                        <Text style={[styles.header,{fontWeight:'600',fontSize:25,textTransform:'capitalize',color: 'white'}]}>delete</Text>
+                                </TouchableOpacity>
+
                                 </ScrollView>
                         </SafeAreaView>
                 )

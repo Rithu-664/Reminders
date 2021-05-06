@@ -1,8 +1,8 @@
 import React, { Component } from 'react'
 import {createMaterialBottomTabNavigator} from '@react-navigation/material-bottom-tabs'
 import Home from './Home'
-import Profile from './Profile'
-import {FontAwesome, MaterialIcons} from '@expo/vector-icons'
+import {FontAwesome} from '@expo/vector-icons'
+import RecentlyDeleted from './RecentlyDeleted'
 
 const Tab =  createMaterialBottomTabNavigator()
 
@@ -20,11 +20,11 @@ export default class TabNavigator extends Component {
                                         }}
                                 />
                                 <Tab.Screen
-                                        name="Profile"
-                                        component={Profile}
+                                        name="Recently Deleted"
+                                        component={RecentlyDeleted}
                                         options={{
                                                 tabBarIcon: () => (
-                                                        <FontAwesome name="user" size={26} color="#000" />
+                                                        <FontAwesome name='trash' size={26} color="#000" />
                                                 ),
                                         }}
                                 />
