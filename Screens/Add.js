@@ -1,14 +1,17 @@
 import React, { Component } from 'react'
-import { ActivityIndicator, Alert, SafeAreaView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
-import {Ionicons,MaterialIcons, FontAwesome5, Feather} from '@expo/vector-icons'
-import { Input,Avatar } from 'react-native-elements'
+import { ActivityIndicator, Dimensions, FlatList, Modal, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, TouchableOpacity, View } from 'react-native'
+import {Ionicons,MaterialIcons, AntDesign, Entypo, FontAwesome5, Feather, MaterialCommunityIcons, FontAwesome,Fontisto} from '@expo/vector-icons'
+import { Input, ListItem, Avatar } from 'react-native-elements'
 import DateTimePicker from 'react-native-modal-datetime-picker';
 import firebase from 'firebase'
-import * as ImagePicker from 'expo-image-picker'
 import BouncyCheckbox from 'react-native-bouncy-checkbox'
 import theme from '../Props/theme';
+import ColorPicker from 'react-native-wheel-color-picker'
 
 export default class Add extends Component {
+        backgroundColors = ["#EC5546","#F1A43C","#F8D74B","#68CE6A",'#89C2F8']
+        backgroundColors2 = ["#3B82F6","#5D5CDE","#EB5D7B","#C883EE","#767C86"]
+
         state = {
                 title:'',
                 description:'',
@@ -17,9 +20,29 @@ export default class Add extends Component {
                 dateAndTime:'',
                 dateTimeError:'',
                 timeNotificationShouldBeSent:'',
-                imageURL:'#',
                 modalVisible:false,
-                reminderAdded: false
+                reminderAdded: false,
+                backgroundColor:'#f0f0f0',
+                isModalVisible: false,
+                iconModalVisible: false,
+                icon:'clock',
+                iconType:'feather'
+        }
+        
+        renderColors() {
+                return this.backgroundColors.map(color => {
+                        return(
+                                <TouchableOpacity key={color} style={{backgroundColor:color,width:30,height:30,borderRadius:4}} onPress={() => this.setState({backgroundColor:color})} />
+                        )
+                })
+        }
+
+        renderColors2() {
+                return this.backgroundColors2.map(color => {
+                        return(
+                                <TouchableOpacity key={color} style={{backgroundColor:color,width:30,height:30,borderRadius:4}} onPress={() => this.setState({backgroundColor:color})} />
+                        )
+                })
         }
 
         addReminder = async () => {
@@ -39,76 +62,20 @@ export default class Add extends Component {
                                 title: this.state.title,
                                 description:this.state.description,
                                 dateAndTime:this.state.dateAndTime,
-                                timeNotificationShouldBeSent:this.state.timeNotificationShouldBeSent === '' ? '5 minutes' : this.state.timeNotificationShouldBeSent + ' minutes'
+                                timeNotificationShouldBeSent:this.state.timeNotificationShouldBeSent === '' ? '5 minutes' : this.state.timeNotificationShouldBeSent + ' minutes',
+                                userEmail: firebase.auth().currentUser.email,
+                                backgroundColor:this.state.backgroundColor,
+                                icon:this.state.icon,
+                                iconType:this.state.iconType
                         })
                         .then( async () => {
-                                if(this.state.imageURL === '#'){
-                                        this.props.navigation.goBack()
-                                }else {
-                                        var response = await fetch(this.state.imageURL);
-                                        var blob = await response.blob();
-                                        var ref = firebase
-                                        .storage()
-                                        .ref()
-                                        .child('reminder_images/' + this.state.title);
-                                                return ref.put(blob).then((response) => {
-                                                        this.props.navigation.goBack()
-                                        }).catch(error => {
-                                                alert(error.message)
-                                        })
-                                }
+                                this.props.navigation.goBack()        
                         })
                         this.setState({reminderAdded:false})
                 }   
         }
 
-        uploadImage = async (uri, task) => {
-                var response = await fetch(uri);
-                var blob = await response.blob();
-                var ref = firebase
-                  .storage()
-                  .ref()
-                  .child('reminder_images/' + task);
-                return ref.put(blob).then((response) => {
-                  this.fetchImage(task);
-                }).catch(error => {
-                  alert(error.message)
-                })
-              };
         
-              fetchImage = async (userId) => {
-                var storageRef = firebase
-                  .storage()
-                  .ref()
-                  .child('reminder_images/' + userId); 
-                  // Get the download URL
-                await storageRef
-                  .getDownloadURL()
-                  .then((url) => {
-                    this.setState({imageURL: url})
-                  })
-                  .catch((error) => {
-                    this.setState({imageURL:'#'})
-                  });
-              };
-            
-            
-                selectPicture = async () => {
-                const { cancelled, uri } = await ImagePicker.launchImageLibraryAsync({
-                  mediaType: ImagePicker.MediaTypeOptions.All,
-                  allowsEditing: true,
-                  aspect: [4, 3],
-                  quality: 1,
-                });
-                if (!cancelled) {
-                  if(this.state.title === ''){
-                          Alert.alert('Please enter a title to choose a profile picture')
-                  }else{
-                        this.setState({imageURL: uri})
-                        this.uploadImage(uri, this.state.title);
-                  }
-                }
-              };
 
                 componentDidUpdate(){
                         if(this.state.title !== '' && this.state.titleError !== ''){
@@ -157,10 +124,7 @@ export default class Add extends Component {
                         minutes;
                         return dateTimeString
                 }
-
-
-                
-                  
+     
                 const onCancel = () => {
                         hideModal();
                 };
@@ -175,6 +139,86 @@ export default class Add extends Component {
 
                 return (
                         <SafeAreaView style={{flex:1,backgroundColor:'white'}}>
+                                <Modal visible={this.state.iconModalVisible}  onRequestClose={() => this.setState({iconModalVisible: false})} animationType="fade">
+                                        <ScrollView contentContainerStyle={{justifyContent:'space-around',height:'80%',backgroundColor:'powderblue',flex:1}}>
+                                        <TouchableOpacity style={{position:'absolute', top: 32, left: 25}} onPress={() => this.setState({iconModalVisible:false})}>
+                                        <Ionicons name="ios-arrow-back-outline" size={45} color="black" />
+                                </TouchableOpacity>
+                                                <View style={{flexDirection:'row',justifyContent:'space-around',margin:20,marginTop:40}}>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'bars',iconType:'antdesign'})}} >
+                                                                <AntDesign name="bars" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'bookmark',iconType:'entypo'})}} >
+                                                                <Entypo name="bookmark" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'cake',iconType:'entypo'})}} >
+                                                                <Entypo name="cake" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'ios-gift',iconType:'ionicon'})}} >
+                                                                <Ionicons name="ios-gift" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'dumbbell',iconType:'material-community'})}} >
+                                                                <MaterialCommunityIcons name="dumbbell" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                </View>
+                                                <View style={{flexDirection:'row',justifyContent:'space-around',margin:20}}>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'ios-home',iconType:'ionicon'})}} >
+                                                                <Ionicons name="ios-home" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'ios-tv-sharp',iconType:'ionicon'})}} >
+                                                                <Ionicons name="ios-tv-sharp" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'ios-musical-notes-sharp',iconType:'ionicon'})}} >
+                                                                <Ionicons name="ios-musical-notes-sharp" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'game-controller',iconType:'ionicon'})}} >
+                                                                <Ionicons name="game-controller" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'silverware-fork-knife',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'bars',iconType:'material-community'})}} >
+                                                                <MaterialCommunityIcons name="silverware-fork-knife" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                </View>
+                                                <View style={{flexDirection:'row',justifyContent:'space-around',margin:20}}>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'ios-paw-sharp',iconType:'ionicon'})}} >
+                                                                <Ionicons name="ios-paw-sharp" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'graduation-cap',iconType:'font-awesome'})}} >
+                                                                <FontAwesome name="graduation-cap" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'credit-card',iconType:'font-awesome'})}} >
+                                                                <FontAwesome name="credit-card" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'stethoscope',iconType:'font-awesome-5'})}} >
+                                                                <FontAwesome5 name="stethoscope" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'leaf',iconType:'material-community'})}} >
+                                                                <MaterialCommunityIcons name="leaf" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                </View>
+                                                <View style={{flexDirection:'row',justifyContent:'space-around',margin:20}}>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'running',iconType:'font-awesome-5'})}} >
+                                                                <FontAwesome5 name="running" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'coins',iconType:'font-awesome-5'})}} >
+                                                                <FontAwesome5 name="coins" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'backpack',iconType:'material'})}} >
+                                                                <MaterialIcons name="backpack" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'pencil-ruler',iconType:'material-community'})}} >
+                                                                <MaterialCommunityIcons name="pencil-ruler" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                        <TouchableOpacity style={{backgroundColor:'#7B7B7B',width:60,height:60,borderRadius:30,alignItems:'center',justifyContent:'center',borderWidth:4,borderColor:'white'}} onPress={() => {this.setState({icon:'pills',iconType:'fontisto'})}} >
+                                                                <Fontisto name="pills" size={35} color="white" />
+                                                        </TouchableOpacity>
+                                                </View>
+                                        </ScrollView>
+                                </Modal>
+
+                                <TouchableOpacity style={{position:'absolute', top: 32, left: 25}} onPress={() => this.props.navigation.goBack()}>
+                                        <Ionicons name="ios-arrow-back-outline" size={45} color="black" />
+                                </TouchableOpacity>
+                                <ScrollView style={{flex:1}} showsVerticalScrollIndicator={false}>
                                 <StatusBar hidden />
                                 <DateTimePicker
                                         isVisible={this.state.modalVisible}
@@ -184,19 +228,7 @@ export default class Add extends Component {
                                         display="spinner"
                                         isDarkModeEnabled
                                 />
-                                <TouchableOpacity style={{position:'absolute', top: 32, left: 25}} onPress={() => this.props.navigation.goBack()}>
-                                        <Ionicons name="ios-arrow-back-outline" size={45} color="black" />
-                                </TouchableOpacity>
                                 <View style={{backgroundColor:'white',marginTop:50,marginHorizontal:50}}>
-                                        <Avatar
-                                                rounded
-                                                source={{ uri: this.state.imageURL }}
-                                                size={100}
-                                                onPress={() => this.selectPicture()}
-                                                icon={this.state.imageURL === '#' ? {name:'clock',type:'feather'} : null}
-                                                showEditButton
-                                                containerStyle={{alignSelf:'center',margin:10}}
-                                        />
                                         <Text style={styles.header}>title</Text>
                                         <Input
                                                 value={this.state.title}
@@ -264,6 +296,32 @@ export default class Add extends Component {
                                                         </View>
                                                 </View>
                                         )}
+                                        <Text style={styles.header}>background Color (will be displayed on the home screen) </Text>
+                                        <View style={{alignSelf:'stretch'}}>
+                                                <View style={{}}>
+                                                        <View style={{flexDirection:'row',justifyContent:'space-between',marginVertical:10}}>
+                                                                {this.renderColors()}
+                                                        </View>
+                                                        <View style={{flexDirection:'row',justifyContent:'space-between'}}>
+                                                                {this.renderColors2()}
+                                                        </View>
+                                                </View>
+                                        </View>
+
+                                        <Text style={[styles.header,{marginTop:15,marginBottom:10}]}>reminder icon (will be displayed on the home screen)</Text>  
+                                        <TouchableOpacity onPress={() =>this.setState({iconModalVisible:true})} style={{marginBottom:10}}>
+                                                <View style={{ flexDirection: 'row',alignItems:'center' }}>
+                                                        <View>
+                                                        <FontAwesome5
+                                                                name="hand-point-up"
+                                                                size={28}
+                                                                color="#696969"
+                                                        />
+                                                        </View>
+
+                                                        <Text style={styles.chooseDate}>choose</Text>
+                                                </View>
+                                                </TouchableOpacity>                             
                                         <Text style={styles.header}>Date and time</Text>
                                         {this.state.dateAndTime === '' ? (
                                                 <TouchableOpacity onPress={() => showModal()}>
@@ -354,11 +412,51 @@ export default class Add extends Component {
                                                 onPress={(isChecked) => {isChecked ? this.setState({timeNotificationShouldBeSent:'20'}) : this.setState({timeNotificationShouldBeSent:''}) }}
                                                 disabled={this.state.timeNotificationShouldBeSent !== '' && this.state.timeNotificationShouldBeSent !== '20' ? true : false}
                                         />
+                                         <View style={{flexDirection:'row',margin:10,justifyContent:'space-around'}}>
+                                                <Text style={{fontSize:13,fontWeight:'200',textTransform:'uppercase',color:'#8e93a1',marginRight:10}}>This is how your reminder will look </Text>
+                                                <FontAwesome5
+                                                                name="hand-point-down"
+                                                                size={28}
+                                                                style={{marginLeft:10}}
+                                                                color="#696969"
+                                                />
+                                        </View>
+
+                                        <ListItem>
+                                <ListItem.Content
+                                        style={{
+                                        backgroundColor: this.state.backgroundColor,
+                                        padding: 20,
+                                        borderRadius: 20,
+                                        }}
+                                >
+                                        <View style={{ flexDirection: 'row' }}>
+                                                <View>
+                                                        <Avatar
+                                                                rounded
+                                                                icon={{ name: this.state.icon, type: this.state.iconType, color:'white' }}
+                                                                activeOpacity={0.7}
+                                                                source={{
+                                                                uri: 'https://s3.amazonaws.com/uifaces/faces/twitter/adhamdannaway/128.jpg'
+                                                                }}
+                                                        />
+                                                </View>
+                                                <View style={{ flexDirection: 'column', marginLeft: 20 }}>
+                                                        <ListItem.Title>{this.state.title}</ListItem.Title>
+                                                        <ListItem.Subtitle right>{this.state.description}</ListItem.Subtitle>
+                                                        <ListItem.Subtitle right>{this.state.dateAndTime}</ListItem.Subtitle>
+                                                </View>
+                                        </View>
+                                </ListItem.Content>
+                      </ListItem>
                                 </View>
+
+                               
                                 {this.state.reminderAdded ? <ActivityIndicator size="large" color="red" /> : <TouchableOpacity style={{alignItems:'center', flexDirection:'row',alignSelf:'center',marginTop:20}} onPress={() => this.addReminder()}>
                                         <Feather name="clock" size={28} color="black"  style={{marginHorizontal:10}}/>
                                         <Text style={[styles.header,{fontWeight:'600',fontSize:25,textTransform:'capitalize',color:'black'}]}>add reminder</Text>
                                 </TouchableOpacity>}
+                                </ScrollView>
                         </SafeAreaView>
                 )
         }

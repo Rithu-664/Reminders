@@ -1,11 +1,23 @@
 import React, { Component } from 'react'
-import { View, Image, Text, StyleSheet, TouchableOpacity, SafeAreaView } from 'react-native'
-import Constants from 'expo-constants'
+import { View, Image, Text, StyleSheet, TouchableOpacity, SafeAreaView, FlatList } from 'react-native'
+import {ListItem,Avatar,Badge} from 'react-native-elements'
 import { StatusBar } from 'expo-status-bar'
 import {AntDesign, MaterialIcons} from '@expo/vector-icons'
 import db from '../Config/Firebase'
 
+var title
 export default class Home extends Component {
+
+        constructor(){
+                super()
+                
+                this.state = {
+                        reminders:[],
+                        imageUri:''
+                }
+
+                this.reminder = null
+        }
 
         onSignOut = () => {
                 db.auth().signOut()
@@ -13,6 +25,19 @@ export default class Home extends Component {
                         this.props.navigation.replace('Login')
                 })
         }
+
+        componentDidMount = async () => {
+                this.reminder = await db
+                  .firestore()
+                  .collection('Reminders')
+                  .where('userEmail', '==', db.auth().currentUser.email)
+                  .onSnapshot((snapshot) => {
+                    var docData = snapshot.docs.map((document) => document.data());
+                    this.setState({
+                      reminders: docData,
+                    });
+                  });
+        };
 
         render() {
                 return (
@@ -33,6 +58,47 @@ export default class Home extends Component {
                                                 </TouchableOpacity>
                                         </View>
                                 </View>
+
+
+                                <FlatList
+              data={this.state.reminders}
+              style={{ marginTop: 10 }}
+              renderItem={({ item }) => {
+                      return(
+                
+                        <ListItem>
+                                <ListItem.Content
+                                        style={{
+                                        backgroundColor: item.backgroundColor,
+                                        padding: 20,
+                                        borderRadius: 20,
+                                        }}
+                                >
+                                <View style={{ flexDirection: 'row' }}>
+                                        <View>
+                                                <Avatar
+                                                        rounded
+                                                        icon={{ name: item.icon, type: item.iconType }}
+                                                        activeOpacity={0.7}
+                                                        source={{
+                                                        uri: 'https://s3.amazonaws.com/uifaces/faces/twitter/adhamdannaway/128.jpg'
+                                                        }}
+                                                />
+                                        </View>
+                                <View style={{ flexDirection: 'column', marginLeft: 20 }}>
+                                        <ListItem.Title>{item.title}</ListItem.Title>
+                                        <ListItem.Subtitle right>{item.description}</ListItem.Subtitle>
+                                        <ListItem.Subtitle right>{item.dateAndTime}</ListItem.Subtitle>
+                                </View>
+                                
+                                </View>
+                                </ListItem.Content>
+                      </ListItem>
+                         
+                    )
+              }}
+              keyExtractor={(item, index) => index.toString()}
+            />
                         </SafeAreaView>
                 )
         }

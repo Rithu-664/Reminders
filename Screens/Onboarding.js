@@ -54,12 +54,6 @@ const OnboardingScreen = ({navigation}) => {
                                         subtitle: 'Add reminders with a custom time',
                                 },
                                 {
-                                        backgroundColor: '#FDEB93',
-                                        image: <Image source={require('../assets/onboarding-img2.png')} />,
-                                        title: 'Add images to your reminders',
-                                        subtitle: 'Add images to make your reminder look more aesthetic',
-                                },
-                                {
                                         backgroundColor: '#E9BCBE',
                                         image: <Image source={require('../assets/onboarding-img3.png')} />,
                                         title: 'Get Notifications',
